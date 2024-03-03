@@ -1,5 +1,14 @@
 using DataStructures
 
+struct MultipleHeaderValuesException <: Exception
+    key::AbstractString
+    values::AbstractVector
+end
+
+function Base.showerror(io::IO, e::MultipleHeaderValuesException)
+    print(io, "The FileIndex contains multiple values for key `$(e.key)`.")
+end
+
 """
 Store for the messages of a GRIB file. Keeps track of the offset of the GRIB messages so they
 can be easily `seeked`. The `unique_headers` property gives all the different values for the keys
@@ -10,8 +19,6 @@ struct FileIndex{T}
     grib_path::String
     messages::Vector{<:MessageIndex}
     unique_headers::Dict{AbstractString, Vector{Any}}
-    "We keep the data of the first message to avoid re-reading for getting x-y coordinates"
-    _first_data
 
     "We need to keep the offsets of all the messages of the file for further seeking."
     _all_offsets::Vector{Int}
@@ -44,8 +51,7 @@ function FileIndex(grib_path::String; index_keys = ALL_KEYS, filter_by_values = 
         for (i, m) in enumerate(f)
             # Infer the data type from the values of the first message
             if i==1
-                fdata = data(m)
-                datatype = eltype(fdata[3])
+                datatype = eltype(data(m)[3])
             end
             mindex = MessageIndex(m, index_keys = index_keys)
             _add_headers!(unique_headers, mindex)
@@ -66,7 +72,7 @@ function FileIndex(grib_path::String; index_keys = ALL_KEYS, filter_by_values = 
         get_offsets(grib_path)
     end
 
-    FileIndex{datatype}(grib_path, messages, unique_headers, fdata, _all_offsets)
+    FileIndex{datatype}(grib_path, messages, unique_headers, _all_offsets)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", index::FileIndex) 
@@ -103,7 +109,7 @@ Check if only one value exists in the `index` at the specified ´key´ and retur
 """
 function getone(index::FileIndex, key::AbstractString) 
     val = getheaders(index)[key]
-    length(val) !== 1 ? error("Expected 1 value for $key, found $(length(val)) instead") : first(val)
+    length(val) !== 1 ? throw(MultipleHeaderValuesException(key, val)) : first(val)
 end
 
 missing_value(index::FileIndex) = getone(index, "missingValue")

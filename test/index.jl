@@ -11,7 +11,7 @@ using GRIBDatasets: build_valid_time, _to_datetime
     @test index["edition"] == [1]
     @test GDS.getone(index, "Nx") == 120
     # More than 1 variable in this dataset, should error
-    @test_throws ErrorException GDS.getone(index, "shortName")
+    @test_throws GDS.MultipleHeaderValuesException GDS.getone(index, "shortName")
 
     @test length(index) == 160
 end
