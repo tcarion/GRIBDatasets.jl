@@ -280,8 +280,7 @@ function filter_messages(mindexs::Vector{<:MessageIndex}, k::AbstractString, v)
 end
 
 
-function filter_messages(mindexs::Vector{<:MessageIndex}; query...)
-    ms = deepcopy(mindexs)
+function filter_messages(ms::Vector{<:MessageIndex}; query...)
     for (k, v) in query
         ms = filter_messages(ms, string(k), v)
     end
